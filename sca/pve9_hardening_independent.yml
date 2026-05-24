@@ -246,6 +246,7 @@ checks:
   # No-Subscription repo setup
   - id: 310020
     title: "Ensure security updates via pve-no-subscription or enterprise repo"
+    description: ""
     condition: any
     rules:
       - "f:/etc/apt/sources.list.d/pve-install-repo.list -> r:pve-no-subscription"
@@ -254,6 +255,7 @@ checks:
   # Fingerprint en storages PBS
   - id: 310021
     title: "Ensure PBS storage uses SSL Fingerprints"
+    description: ""
     condition: all
     rules:
       - "f:/etc/pve/storage.cfg -> r:fingerprint"
@@ -261,7 +263,65 @@ checks:
   # Encrypted backups 
   - id: 310022
     title: "Ensure PBS storage has encryption keys defined"
+    description: ""
     condition: all
     rules:
       - "f:/etc/pve/storage.cfg -> r:encryption-key"
+
+  - id: 310023
+    title: "Ensure PVE Proxy uses secure TLS protocols"
+    description: "Verify that only TLS 1.2 or 1.3 are allowed for the web interface."
+    condition: all
+    rules:
+      - "f:/etc/default/pveproxy -> r:CIPHERS=\"HIGH:!aNULL:!MD5\""
+
+  - id: 310024
+    title: "Ensure Proxmox Firewall is enabled at Datacenter level"
+    description: ""
+    condition: all
+    rules:
+      - "f:/etc/pve/firewall/cluster.fw -> r:enable: 1"
+
+  - id: 310025
+    title: "Ensure Fail2Ban is installed and protecting PVE Proxy"
+    description: ""
+    condition: all
+    rules:
+      - "c:systemctl is-active fail2ban -> active"
+      - "f:/etc/fail2ban/jail.local -> r:\\[proxmox\\]"
+
+  - id: 310026
+    title: "Restrict ptrace scope"
+    description: ""
+    condition: all
+    rules:
+      - "c:sysctl kernel.yama.ptrace_scope -> 1"
+
+  - id: 310027
+    title: "Check if IPv6 is disabled if not required"
+    description: ""
+    condition: all
+    rules:
+      - "c:sysctl net.ipv6.conf.all.disable_ipv6 -> 1"
+
+  - id: 310028
+    title: "Ensure DCCP kernel module is disabled"
+    description: ""
+    condition: all
+    rules:
+      - "c:modprobe -n -v dccp -> r:install /bin/true"
+
+  - id: 310029
+    title: "Ensure SCTP kernel module is disabled"
+    description: ""
+    condition: all
+    rules:
+      - "c:modprobe -n -v sctp -> r:install /bin/true"
+
+  - id: 310030
+    title: "Ensure Floppy driver is disabled"
+    description: ""
+    condition: all
+    rules:
+      - "c:modprobe -n -v floppy -> r:install /bin/true"
 
