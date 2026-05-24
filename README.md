@@ -43,7 +43,7 @@ Never place custom policies in /var/ossec/ruleset/sca — they get overwritten o
 On manager: /var/ossec/etc/shared/default/ (or group folder)
 
 ```bash
-sudo cp sca/pve9_hardening.yml /var/ossec/etc/shared/default/
+sudo cp sca/pve9_hardening_independent.yml /var/ossec/etc/shared/default/
 ```
 
 ### 2. Enable SCA policies in ossec.conf
@@ -57,7 +57,7 @@ Add the following inside the `<sca>` block in `/var/ossec/etc/ossec.conf`:
   <interval>12h</interval>
   <skip_nfs>yes</skip_nfs>
   <policies>
-    <policy>etc/shared/default/pve9_hardening.yml</policy>
+    <policy>etc/shared/default/pve9_hardening_independent.yml</policy>
   </policies>
 </sca>
 ```
