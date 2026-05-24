@@ -78,7 +78,7 @@ checks:
       - 'f:/etc/apt/sources.list -> r:non-free-firmware'
       - 'f:/etc/apt/sources.list.d/debian.sources -> r:non-free-firmware'
 
-  - id: 310001
+  - id: 410001
     title: "Install CPU microcode"
     description: "Ensures the latest vendor microcode mitigations and stability fixes are applied at boot."
     rationale: "Addresses CPU errata and security vulnerabilities that cannot be fully fixed by system firmware alone."
@@ -88,9 +88,9 @@ checks:
       - 'c:dpkg -s intel-microcode -> r:Status: install ok'
       - 'c:dpkg -s amd64-microcode -> r:Status: install ok'
   
-  - id: 310002
+  - id: 410002
     title: "Enable UEFI Secure Boot"
-    description: "Since Proxmox Backup Server 3.1, Secure Boot is supported out of the box via signed packages and integration in proxmox-boot-tool."
+    description: "Since Proxmox Backup Server 4.1, Secure Boot is supported out of the box via signed packages and integration in proxmox-boot-tool."
     rationale: "Shim bootloader signed by Microsoft, fallback bootloader and MOKManager, signed by Proxmox, Grub EFI bootloader, signed by Proxmox and Kernel image, signed by Proxmox"
     remediation: "Install with apt install shim-signed, , AMD: apt install amd64-microcode. Reboot to apply (microcode is loaded at boot)."
     references:
@@ -102,7 +102,7 @@ checks:
       - 'c:dpkg -s grub-efi-amd64-signed -> r:Status: install ok'
       - 'c:dpkg -s proxmox-kernel-6.X.Y-Z-pve-signed -> r:Status: install ok'
 
-  - id: 310003
+  - id: 410003
     title: "Kernel Lockdown (Integrity Mode)"
     description: "When Secure Boot is enabled, the parameter lockdown=integrity blocks unsigned kernel modules, restricts access to /dev/mem, and kernel-space tampering, even by a compromised root account."
     rationale: "Defense-in-depth against kernel-level compromise. It prevents root-level users from modifying the running kernel or loading unauthorized code, which severely limits the blast radius of a potential hypervisor breakout"
@@ -111,7 +111,7 @@ checks:
     rules:
       - 'f:/sys/kernel/security/lockdown -> r:[integrity] confidentiality none'
 
-  - id: 310004
+  - id: 410004
     title: "Maintain a Valid Proxmox Subscription"
     description: "When Secure Boot is enabled, the parameter lockdown=integrity blocks unsigned kernel modules, restricts access to /dev/mem, and kernel-space tampering, even by a compromised root account."
     rationale: "Subscription provides: 
@@ -123,7 +123,7 @@ checks:
     rules:
       - 'f:/etc/proxmox-backup/subscription -> !r:^#'
 
-  - id: 310005
+  - id: 410005
     title: "Enable 2FA"
     description: "Two-factor authentication (2FA) adds an additional factor (TOTP or YubiKey OTP) to mitigate password compromise."
     rationale: "Neutralize the risks of compromised passwords by adding an extra layer of security."
@@ -132,7 +132,7 @@ checks:
     rules:
       - 'f:/etc/proxmox-backup/tfa.json !r:^#'
 
-  - id: 310006
+  - id: 410006
     title: "Datastore Protections. Turn On “verify-new"
     description: "**Forces an **immediate checksum comparison** after every chunk upload."
     rationale: "verify-new if enabled, all new backups will be verified right after completion.
@@ -144,7 +144,7 @@ checks:
       - 'f:/etc/proxmox-backup/datastore.cfg r:^\s*\t*verify-new'
 
   # Check active service
-  - id: 310007
+  - id: 410007
     title: "Ensure that the Proxmox Backup Proxy service is running"
     description: ""
     condition: any
@@ -152,7 +152,7 @@ checks:
       - 'c:systemctl is-active proxmox-backup-proxy -> r:^active'
 
   # Sensitive configuration file permissions
-  - id: 310008
+  - id: 410008
     title: "Restrictive permissions on PBS configuration files"
     description: ""
     condition: all
@@ -162,7 +162,7 @@ checks:
       - 'f:/etc/proxmox-backup/priv/shadow.cfg -> p:600'
 
     # Network security
-  - id: 310009
+  - id: 410009
     title: "Verify that PVE is listening on default port (8006)"
     description: ""
     condition: any
@@ -170,7 +170,7 @@ checks:
       - 'c:ss -tlnp -> r::8006'
 
   # Verify backups
-  - id: 310010
+  - id: 410010
     title: "Check for scheduled verification tasks"
     description: ""
     condition: any
@@ -178,7 +178,7 @@ checks:
       - 'f:/etc/proxmox-backup/verification.cfg -> r:schedule'
 
   # Verify ZFS pool
-  - id: 310010
+  - id: 410010
     title: "Check for ZFS pool status"
     description: ""
     condition: any
@@ -186,7 +186,7 @@ checks:
       - 'c:zpool status -> r:DEGRADED|FAULTED'
 
   # ZFS status 
-  - id: 310011 
+  - id: 410011 
     title: "ZFS: Check that the pools are ONLINE" 
     description: ""
     condition: all 
@@ -195,7 +195,7 @@ checks:
       - 'c:zpool status -> !r:DEGRADED|FAULTED|OFFLINE' 
 
   # Kernel Security 
-  - id: 310012 
+  - id: 410012 
     title: "Kernel: Disable IP Forwarding" 
     description: ""
     condition: any 
@@ -203,7 +203,7 @@ checks:
     - 'c:sysctl net.ipv4.ip_forward -> r:0' 
 
   # Space Monitoring in Datastores 
-  - id: 310013 
+  - id: 410013 
     title: "ZFS: Alert if the datastore is full (>90%)" 
     description: ""
     condition: none 
@@ -211,14 +211,14 @@ checks:
       - 'c:zfs list -> r:([9][0-9]%)'
 
   # API Token Usage
-  - id: 310014
+  - id: 410014
     title: "Ensure API Tokens are used for external integrations (PVE-to-PBS)"
     description: "Verify that at least one API token is defined in user.cfg to avoid using plain user passwords for integrations."
     condition: all
     rules:
       - "f:/etc/pve/user.cfg -> r:token:"
 
-  - id: 310015
+  - id: 410015
     title: "Review API Tokens with Administrator privileges"
     description: "Check if any API token has been granted the Administrator role, which is a security risk."
     condition: none
@@ -226,7 +226,7 @@ checks:
       - "f:/etc/pve/user.cfg -> r:token:.+:Administrator:"
 
   # Network Service Hardening
-  - id: 310016
+  - id: 410016
     title: "Ensure no legacy/insecure remote shells are installed"
     description: ""
     condition: none
@@ -236,7 +236,7 @@ checks:
       - 'c:dpkg -l -> r:nis'
 
   # ZFS Dataset Health (Specific to PBS Datastores)
-  - id: 310017
+  - id: 410017
     title: "ZFS: Check for checksum errors in pools"
     description: ""
     condition: none
@@ -245,7 +245,7 @@ checks:
 
   # Fail2Ban Presence
   # Since PBS is often targeted by brute force on port 8007
-  - id: 310018
+  - id: 410018
     title: "Ensure Fail2Ban is active for API protection"
     description: ""
     condition: any
@@ -253,7 +253,7 @@ checks:
       - 'c:systemctl is-active fail2ban -> r:active'
 
   # APT Update Policy
-  - id: 310019
+  - id: 410019
     title: "Ensure security updates repository is present"
     description: ""
     condition: any
@@ -262,7 +262,7 @@ checks:
       - 'f:/etc/apt/sources.list.d/debian.sources -> r:deb-security'
 
   # No-Subscription repo setup
-  - id: 310020
+  - id: 410020
     title: "Ensure security updates via pve-no-subscription or enterprise repo"
     description: ""
     condition: any
@@ -271,7 +271,7 @@ checks:
       - "f:/etc/apt/sources.list.d/pve-enterprise.list -> r:^deb"
 
   # Fingerprint en storages PBS
-  - id: 310021
+  - id: 410021
     title: "Ensure PBS storage uses SSL Fingerprints"
     description: ""
     condition: all
@@ -279,28 +279,28 @@ checks:
       - "f:/etc/pve/storage.cfg -> r:fingerprint"
 
   # Encrypted backups 
-  - id: 310022
+  - id: 410022
     title: "Ensure PBS storage has encryption keys defined"
     description: ""
     condition: all
     rules:
       - "f:/etc/pve/storage.cfg -> r:encryption-key"
 
-  - id: 310023
+  - id: 410023
     title: "Ensure PVE Proxy uses secure TLS protocols"
     description: "Verify that only TLS 1.2 or 1.3 are allowed for the web interface."
     condition: all
     rules:
       - "f:/etc/default/pveproxy -> r:CIPHERS=\"HIGH:!aNULL:!MD5\""
 
-  - id: 310024
+  - id: 410024
     title: "Ensure Proxmox Firewall is enabled at Datacenter level"
     description: ""
     condition: all
     rules:
       - "f:/etc/pve/firewall/cluster.fw -> r:enable: 1"
 
-  - id: 310025
+  - id: 410025
     title: "Ensure Fail2Ban is installed and protecting PVE Proxy"
     description: ""
     condition: all
@@ -308,42 +308,42 @@ checks:
       - "c:systemctl is-active fail2ban -> active"
       - "f:/etc/fail2ban/jail.local -> r:\\[proxmox\\]"
 
-  - id: 310026
+  - id: 410026
     title: "Restrict ptrace scope"
     description: ""
     condition: all
     rules:
       - "c:sysctl kernel.yama.ptrace_scope -> 1"
 
-  - id: 310027
+  - id: 410027
     title: "Check if IPv6 is disabled if not required"
     description: ""
     condition: all
     rules:
       - "c:sysctl net.ipv6.conf.all.disable_ipv6 -> 1"
 
-  - id: 310028
+  - id: 410028
     title: "Ensure DCCP kernel module is disabled"
     description: ""
     condition: all
     rules:
       - "c:modprobe -n -v dccp -> r:install /bin/true"
 
-  - id: 310029
+  - id: 410029
     title: "Ensure SCTP kernel module is disabled"
     description: ""
     condition: all
     rules:
       - "c:modprobe -n -v sctp -> r:install /bin/true"
 
-  - id: 310030
+  - id: 410030
     title: "Ensure Floppy driver is disabled"
     description: ""
     condition: all
     rules:
       - "c:modprobe -n -v floppy -> r:install /bin/true"
 
-  - id: 310031
+  - id: 410031
     title: "Ensure personalized accounts are defined in PVE"
     description: "Checks if there are other users defined in Proxmox besides the default root@pam."
     condition: all
@@ -351,21 +351,21 @@ checks:
       - "f:/etc/pve/user.cfg -> r:user:[^:]+@(pam|pve):"
       - "f:/etc/pve/user.cfg -> n:user:root@pam:"
 
-  - id: 310032
+  - id: 410032
     title: "Ensure Two-Factor Authentication (2FA) is enabled"
     description: "Checks if there is any TFA configuration (TOTP, WebAuthn, Yubico) in the PVE cluster."
     condition: all
     rules:
       - "f:/etc/pve/tfa.cfg -> r:type:"
 
-  - id: 310033
+  - id: 410033
     title: "Ensure PVE Web UI session timeout is configured"
     description: ""
     condition: all
     rules:
       - "f:/usr/share/perl5/PVE/AccessControl.pm -> r:my \\$ticket_lifetime = \\d+"
 
-  - id: 310034
+  - id: 410034
     title: "Ensure a trusted SSL certificate is used for the GUI"
     description: "Checks if the PVE proxy is using a custom certificate instead of the default self-signed one."
     condition: all
@@ -373,14 +373,14 @@ checks:
       - "f:/etc/pve/local/pveproxy-ssl.pem"
       - "c:openssl x509 -in /etc/pve/local/pveproxy-ssl.pem -noout -issuer -> !r:Proxmox Virtual Environment"
 
-  - id: 310035
+  - id: 410035
     title: "Ensure Fail2Ban is installed and active"
     description: ""
     condition: all
     rules:
       - "c:systemctl is-active fail2ban -> active"
 
-  - id: 310036
+  - id: 410036
     title: "Ensure Fail2Ban has a jail configured for PVE Proxy"
     description: "Verifies that a jail exists to monitor authentication failures in pveproxy."
     condition: any
@@ -389,7 +389,7 @@ checks:
       - "f:/etc/fail2ban/jail.conf -> r:\\[proxmox\\]"
       - "f:/etc/fail2ban/jail.d/proxmox.conf"
 
-  - id: 310037
+  - id: 410037
     title: "Ensure Fail2Ban filter for Proxmox is defined"
     description: "Checks for the existence of the regex filter to catch failed PVE logins."
     condition: all
