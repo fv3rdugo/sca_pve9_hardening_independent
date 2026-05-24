@@ -1,0 +1,267 @@
+# Security Configuration Assessment
+# PVE9 Checks for Server Security
+#
+# This program is free software; you can redistribute it
+# and/or modify it under the terms of the GNU General Public
+# License (version 3) as published by the FSF - Free Software
+# Foundation
+
+policy:
+  id: "pve9_hardening_independent"
+  title: "Security Configuration Assessment for pve9 Server"
+  file: "pve9_hardening_independent"
+  name: "Proxmox VE Server 9.x hardening server"
+  description: "This document provides prescriptive guidance for establishing a secure configuration posture for Proxmox VE Server 9.x"
+  references:
+    - https://www.proxmox.com/en/products/proxmox-virtual-environment/overview
+    - https://github.com/HomeSecExplorer/Proxmox-Hardening-Guide.git
+    - https://wazuh.com
+
+requirements:
+  title: "Check Proxmox VE 9.x Server"
+  description: "Requirements for running the SCA scan against pve9 server"
+  condition: all
+  rules: 
+   - 'c:dpkg -s proxmox-ve -> r:Status: install ok'
+
+checks:
+  # Security Configuration Assessment for PVE 9.x Server
+  # Check PVE 9.x Server
+  # Enable Debian “non-free-firmware” repositories
+  # Enable UEFI Secure Boot
+  # Kernel Lockdown (Integrity Mode)
+  # Install CPU microcode
+  # Maintain a Valid Proxmox Subscription
+  # Enable 2FA
+  # Datastore Protections. Turn On “verify-new
+  # Restrictive permissions on PBS configuration files
+  # Check for scheduled verification tasks
+  # Check for ZFS pool status
+  # ZFS: Check that the pools are ONLINE"
+  # Verify that PVE is listening on default port (8006)
+  # Kernel: Disable IP Forwarding
+  # Verify if API Tokens are defined (Best practice for PVE-to-PBS connection)
+  # Ensure no legacy/insecure remote shells are installed
+  # ZFS: Alert if the datastore is full (>90%)"
+  # ZFS: Check for checksum errors in pools
+  # Ensure Fail2Ban is active for API protection
+  # Ensure security updates repository is present
+  
+  - id: 210000
+    title: "Enable Debian “non-free-firmware” repositories"
+    description: "“Non-free” in Debian refers to software that does not comply with the Debian Free Software Guidelines (DFSG)."
+    rationale: "Enable Debian non-free-firmware alongside main and contrib to ensure required firmware and microcode are available."
+    remediation: "In /etc/apt/sources.list:
+                    deb http://deb.debian.org/debian bookworm main contrib non-free-firmware
+                    deb http://deb.debian.org/debian bookworm-updates main contrib non-free-firmware
+                    deb http://security.debian.org/debian-security bookworm-security main contrib non-free-firmware "
+    condition: "all"
+    rules:
+      - 'f:/etc/apt/sources.list -> r:non-free-firmware'
+      - 'f:/etc/apt/sources.list.d/debian.sources -> r:non-free-firmware'
+
+  - id: 310001
+    title: "Install CPU microcode"
+    description: "Ensures the latest vendor microcode mitigations and stability fixes are applied at boot."
+    rationale: "Addresses CPU errata and security vulnerabilities that cannot be fully fixed by system firmware alone."
+    remediation: "Install CPU microcode updates: Intel: apt install intel-microcode, AMD: apt install amd64-microcode. Reboot to apply (microcode is loaded at boot)."
+    condition: "any"
+    rules:
+      - 'c:dpkg -s intel-microcode -> r:Status: install ok'
+      - 'c:dpkg -s amd64-microcode -> r:Status: install ok'
+  
+  - id: 310002
+    title: "Enable UEFI Secure Boot"
+    description: "Since Proxmox Backup Server 3.1, Secure Boot is supported out of the box via signed packages and integration in proxmox-boot-tool."
+    rationale: "Shim bootloader signed by Microsoft, fallback bootloader and MOKManager, signed by Proxmox, Grub EFI bootloader, signed by Proxmox and Kernel image, signed by Proxmox"
+    remediation: "Install with apt install shim-signed, , AMD: apt install amd64-microcode. Reboot to apply (microcode is loaded at boot)."
+    references:
+      -  "https://pve.proxmox.com/pve-docs/chapter-sysadmin.html#sysboot_secure_boot"
+    condition: "all"
+    rules:
+      - 'c:dpkg -s shim-signed -> r:Status: install ok'
+      - 'c:dpkg -s shim-helpers-amd64-signed -> r:Status: install ok'
+      - 'c:dpkg -s grub-efi-amd64-signed -> r:Status: install ok'
+      - 'c:dpkg -s proxmox-kernel-6.X.Y-Z-pve-signed -> r:Status: install ok'
+
+  - id: 310003
+    title: "Kernel Lockdown (Integrity Mode)"
+    description: "When Secure Boot is enabled, the parameter lockdown=integrity blocks unsigned kernel modules, restricts access to /dev/mem, and kernel-space tampering, even by a compromised root account."
+    rationale: "Defense-in-depth against kernel-level compromise. It prevents root-level users from modifying the running kernel or loading unauthorized code, which severely limits the blast radius of a potential hypervisor breakout"
+    remediation: "Confirm Secure Boot: mokutil --sb-state -> should report 'SecureBoot enabled'. Add GRUB parameter: GRUB_CMDLINE_LINUX_DEFAULT=\"quiet lockdown=integrity\" update-grub reboot"
+    condition: "any"
+    rules:
+      - 'f:/sys/kernel/security/lockdown -> r:[integrity] confidentiality none'
+
+  - id: 310004
+    title: "Maintain a Valid Proxmox Subscription"
+    description: "When Secure Boot is enabled, the parameter lockdown=integrity blocks unsigned kernel modules, restricts access to /dev/mem, and kernel-space tampering, even by a compromised root account."
+    rationale: "Subscription provides: 
+                Enterprise Repository Access: You gain access to the Proxmox Enterprise Repository, which offers thoroughly tested, highly stable updates and security patches.
+                Official Technical Support: Higher tiers include direct ticket-based help from Proxmox engineers to troubleshoot issues and minimize downtime.
+                Project Funding: Purchasing a license helps fund the development and maintenance of the open-source platform"
+    remediation: "Configuration --> Subscription --> Upload Subscription Key"
+    condition: "any"
+    rules:
+      - 'f:/etc/proxmox-backup/subscription -> !r:^#'
+
+  - id: 310005
+    title: "Enable 2FA"
+    description: "Two-factor authentication (2FA) adds an additional factor (TOTP or YubiKey OTP) to mitigate password compromise."
+    rationale: "Neutralize the risks of compromised passwords by adding an extra layer of security."
+    remediation: "Execute proxmox-backup-manager user list. This command will output a table of all server users and will display whether MFA/TFA is configured"
+    condition: "any"
+    rules:
+      - 'f:/etc/proxmox-backup/tfa.json !r:^#'
+
+  - id: 310006
+    title: "Datastore Protections. Turn On “verify-new"
+    description: "**Forces an **immediate checksum comparison** after every chunk upload."
+    rationale: "verify-new if enabled, all new backups will be verified right after completion.
+              A snapshot is marked OK only if all blocks match their expected SHA-256 hashes, catching transmission errors or bad sectors before the job completes."
+    remediation: "`Datastore --> Options`: **Verify New Backups = Yes**
+                 `proxmox-backup-manager datastore update <<datastore>> --verify-new true`"
+    condition: "any"
+    rules:
+      - 'f:/etc/proxmox-backup/datastore.cfg r:^\s*\t*verify-new'
+
+  # Check active service
+  - id: 310007
+    title: "Ensure that the Proxmox Backup Proxy service is running"
+    description: ""
+    condition: any
+    rules:
+      - 'c:systemctl is-active proxmox-backup-proxy -> r:^active'
+
+  # Sensitive configuration file permissions
+  - id: 310008
+    title: "Restrictive permissions on PBS configuration files"
+    description: ""
+    condition: all
+    rules:
+      - 'f:/etc/proxmox-backup/user.cfg -> p:640'
+      - 'f:/etc/proxmox-backup/datastore.cfg -> p:640'
+      - 'f:/etc/proxmox-backup/priv/shadow.cfg -> p:600'
+
+    # Network security
+  - id: 310009
+    title: "Verify that PVE is listening on default port (8006)"
+    description: ""
+    condition: any
+    rules:
+      - 'c:ss -tlnp -> r::8006'
+
+  # Verify backups
+  - id: 310010
+    title: "Check for scheduled verification tasks"
+    description: ""
+    condition: any
+    rules:
+      - 'f:/etc/proxmox-backup/verification.cfg -> r:schedule'
+
+  # Verify ZFS pool
+  - id: 310010
+    title: "Check for ZFS pool status"
+    description: ""
+    condition: any
+    rules:
+      - 'c:zpool status -> r:DEGRADED|FAULTED'
+
+  # ZFS status 
+  - id: 310011 
+    title: "ZFS: Check that the pools are ONLINE" 
+    description: ""
+    condition: all 
+    rules: 
+      - 'c:zpool status -> r:state: ONLINE' 
+      - 'c:zpool status -> !r:DEGRADED|FAULTED|OFFLINE' 
+
+  # Kernel Security 
+  - id: 310012 
+    title: "Kernel: Disable IP Forwarding" 
+    description: ""
+    condition: any 
+    rules: 
+    - 'c:sysctl net.ipv4.ip_forward -> r:0' 
+
+  # Space Monitoring in Datastores 
+  - id: 310013 
+    title: "ZFS: Alert if the datastore is full (>90%)" 
+    description: ""
+    condition: none 
+    rules: 
+      - 'c:zfs list -> r:([9][0-9]%)'
+
+  # API Token Usage
+  - id: 310014
+    title: "Ensure API Tokens are used for external integrations (PVE-to-PBS)"
+    description: "Verify that at least one API token is defined in user.cfg to avoid using plain user passwords for integrations."
+    condition: all
+    rules:
+      - "f:/etc/pve/user.cfg -> r:token:"
+
+  - id: 310015
+    title: "Review API Tokens with Administrator privileges"
+    description: "Check if any API token has been granted the Administrator role, which is a security risk."
+    condition: none
+    rules:
+      - "f:/etc/pve/user.cfg -> r:token:.+:Administrator:"
+
+  # Network Service Hardening
+  - id: 310016
+    title: "Ensure no legacy/insecure remote shells are installed"
+    description: ""
+    condition: none
+    rules:
+      - 'c:dpkg -l -> r:telnet-server'
+      - 'c:dpkg -l -> r:rsh-server'
+      - 'c:dpkg -l -> r:nis'
+
+  # ZFS Dataset Health (Specific to PBS Datastores)
+  - id: 310017
+    title: "ZFS: Check for checksum errors in pools"
+    description: ""
+    condition: none
+    rules:
+      - 'c:zpool status -> r:READ|WRITE|CKSUM\s+[1-9]'
+
+  # Fail2Ban Presence
+  # Since PBS is often targeted by brute force on port 8007
+  - id: 310018
+    title: "Ensure Fail2Ban is active for API protection"
+    description: ""
+    condition: any
+    rules:
+      - 'c:systemctl is-active fail2ban -> r:active'
+
+  # APT Update Policy
+  - id: 310019
+    title: "Ensure security updates repository is present"
+    description: ""
+    condition: any
+    rules:
+      - 'f:/etc/apt/sources.list -> r:deb-security'
+      - 'f:/etc/apt/sources.list.d/debian.sources -> r:deb-security'
+
+  # No-Subscription repo setup
+  - id: 310020
+    title: "Ensure security updates via pve-no-subscription or enterprise repo"
+    condition: any
+    rules:
+      - "f:/etc/apt/sources.list.d/pve-install-repo.list -> r:pve-no-subscription"
+      - "f:/etc/apt/sources.list.d/pve-enterprise.list -> r:^deb"
+
+  # Fingerprint en storages PBS
+  - id: 310021
+    title: "Ensure PBS storage uses SSL Fingerprints"
+    condition: all
+    rules:
+      - "f:/etc/pve/storage.cfg -> r:fingerprint"
+
+  # Encrypted backups 
+  - id: 310022
+    title: "Ensure PBS storage has encryption keys defined"
+    condition: all
+    rules:
+      - "f:/etc/pve/storage.cfg -> r:encryption-key"
+
