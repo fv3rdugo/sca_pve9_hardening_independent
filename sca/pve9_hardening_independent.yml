@@ -143,40 +143,55 @@ checks:
     rules:
       - 'c:systemctl is-active pvestatd -> r:^active'
 
-  # Sensitive configuration file permissions
-  # - id: 100908
-  #   title: "Restrictive permissions on PBS configuration files"
-  #   description: ""
-  #   condition: all
-  #   rules:
-  #     - 'f:/etc/proxmox-backup/user.cfg -> p:640'
-  #     - 'f:/etc/proxmox-backup/datastore.cfg -> p:640'
-  #     - 'f:/etc/proxmox-backup/priv/shadow.cfg -> p:600'
+  - id: 100908
+    title: 'Check systemd-boot manager'
+    description: "The /proc/cmdline file displays the parameters passed to the Linux kernel when the system boots. This virtual file reveals how the system's core was instructed to start, showing options like root partition details, SELinux states, or console configurations. The /etc/kernel/cmdline file is a plain text file that stores parameters passed to the Linux kernel at boot time. It is commonly used on EFI-booted systems running bootloaders like systemd-boot or proxmox-boot to apply settings like IOMMU, driver blacklists, or console behavior."
+    rationale: 'Kernel parameters are managed via the /etc/kernel/cmdline file rather than GRUB'
+    remediation: 'cat /proc/cmdline > /etc/kernel/cmdline and run proxmox-boot-tool refresh or bootctl update.'
+    condition: "all"
+    rules:
+      - 'f:/etc/kernel/cmdline'
+      - 'c:dpkg -s systemd-boot -> r:Status: install ok'
+
+  - id: 100909
+    title: 'Check if the necessary boot packages are installed for UEFI, secure boot, shim and systemd boot manager'
+    description: "The /proc/cmdline file displays the parameters passed to the Linux kernel when the system boots. This virtual file reveals how the system's core was instructed to start, showing options like root partition details, SELinux states, or console configurations. The /etc/kernel/cmdline file is a plain text file that stores parameters passed to the Linux kernel at boot time. It is commonly used on EFI-booted systems running bootloaders like systemd-boot or proxmox-boot to apply settings like IOMMU, driver blacklists, or console behavior."
+    rationale: 'Kernel parameters are managed via the /etc/kernel/cmdline file rather than GRUB'
+    remediation: 'cat /proc/cmdline > /etc/kernel/cmdline and run proxmox-boot-tool refresh or bootctl update.'
+    condition: "all"
+    rules:
+      - 'c:dpkg -s shim-helpers-amd64-signed -> r:Status: install ok'
+      - 'c:dpkg -s shim-signed -> r:Status: install ok'
+      - 'c:dpkg -s systemd-boot-tools -> r:Status: install ok'
+      - 'c:dpkg -s systemd-boot-efi -> r:Status: install ok'
+
+  - id: 100910
+    title: 'Verify your system is booting using UEFI, Secure Boot, and systemd-boot'
+    description: ""
+    condition: any
+    rules:
+      - 'c:bootctl status -> r:systemd-boot|enable'
+
+  - id: 100911
+    title: "Ensure Shim/Secure Boot is enabled"
+    description: "Verifies if the system is booting securely utilizing the Shim bootloader."
+    rationale: "Malicious bootloaders can compromise the system before the operating system even loads. Ensuring Shim and Secure Boot are functioning prevents unauthorized kernels from executing."
+    remediation: "Install the shim-signed package and enable Secure Boot in your system's UEFI/BIOS settings."
+    condition: 'all'
+    rules:
+      - 'c:mokutil --sb-state -> r:SecureBoot启用|SecureBoot enabled'
 
     # Network security
-  - id: 100909
+  - id: 100912
     title: "Verify that PVE is listening on default port (8006)"
     description: ""
     condition: any
     rules:
       - 'c:ss -tlnp -> r::8006'
 
-  # # Verify backups
-  # - id: 100910
-  #   title: "Check for scheduled verification tasks"
-  #   description: ""
-  #   condition: any
-  #   rules:
-  #     - 'f:/etc/proxmox-backup/verification.cfg -> r:schedule'
 
-  # Verify ZFS pool
-  # - id: 100911
-  #   title: "Check for ZFS pool status"
-  #   description: ""
-  #   condition: any
-  #   rules:
-  #     - 'c:zpool status -> r:DEGRADED|FAULTED'
 
+  
   # ZFS status 
   # - id: 100912 
   #   title: "ZFS: Check that the pools are ONLINE" 
@@ -223,9 +238,9 @@ checks:
     description: ""
     condition: none
     rules:
-      - 'c:dpkg -s telnet-server -> r:Status: install ok
-      - 'c:dpkg -s rsh-server -> r:Status: install ok
-      - 'c:dpkg -s nis -> r:Status: install ok
+      - 'c:dpkg -s telnet-server -> r:Status: install ok'
+      - 'c:dpkg -s rsh-server -> r:Status: install ok'
+      - 'c:dpkg -s nis -> r:Status: install ok'
 
   # ZFS Dataset Health (Specific to PBS Datastores)
   - id: 100918
