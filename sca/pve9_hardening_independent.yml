@@ -223,9 +223,9 @@ checks:
     description: ""
     condition: none
     rules:
-      - 'c:dpkg -s telnet-server -> r:Status: install ok
-      - 'c:dpkg -s rsh-server -> r:Status: install ok
-      - 'c:dpkg -s nis -> r:Status: install ok
+      - 'c:dpkg -s telnet-server -> r:Status: install ok'
+      - 'c:dpkg -s rsh-server -> r:Status: install ok'
+      - 'c:dpkg -s nis -> r:Status: install ok'
 
   # ZFS Dataset Health (Specific to PBS Datastores)
   - id: 100918
