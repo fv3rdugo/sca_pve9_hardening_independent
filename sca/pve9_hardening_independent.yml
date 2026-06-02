@@ -168,10 +168,7 @@ checks:
       - cis: ["1.1.1.1"]
     condition: all
     rules:
-      # Negative check: Ensure it DOES NOT match the unsecure/wrongly configured pattern
-      - "not c:grep -E '^[^#].*/boot/efi' /etc/fstab -> r:defaults\\s+0\\s+1"
-      # Positive check: Ensure it explicitly contains secure masking options
-      - "c:grep -E '^[^#].*/boot/efi' /etc/fstab -> r:umask=0077|fmask=0077"
+      - "c:grep '^[^#].*/boot/efi' /etc/fstab | grep -q 'umask=0077' && ! grep '^[^#].*/boot/efi' /etc/fstab | grep -q 'defaults[[:space:]]\\+0[[:space:]]\\+1' && echo 'PASSED' -> r:^PASSED$"
 
   - id: 100914
     title: "Verify proxmox-boot-tool status is configured for UEFI"
@@ -182,10 +179,8 @@ checks:
       - internal: ["proxmox-boot-tool"]
     condition: all
     rules:
-      # Check 1: Confirms the tool states the system booted with UEFI
-      - "c:proxmox-boot-tool status -> r:System currently booted with uefi"
-      # Check 2: Confirms at least one UUID is configured with UEFI and active versions
-      - "c:proxmox-boot-tool status -> r:[A-FA-z0-9]{4}-[A-FA-z0-9]{4} is configured with:\\s+uefi"
+      - "c:proxmox-boot-tool status | grep -q 'System currently booted with uefi' && echo 'OK' -> r:^OK$"
+      - "c:proxmox-boot-tool status | grep -q -E '[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4} is configured with:[[:space:]]+uefi' && echo 'OK' -> r:^OK$"
 
     # Network security
   - id: 100915
