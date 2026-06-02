@@ -25,45 +25,7 @@ requirements:
    - 'c:dpkg -s proxmox-ve -> r:Status: install ok'
 
 checks:
-  # Enable Debian “non-free-firmware” repositories
-  # Install CPU microcode
-  # Enable UEFI Secure Boot
-  # Kernel Lockdown (Integrity Mode)
-  # Maintain a Valid Proxmox Subscription
-  # Enable 2FA
-  # Datastore Protections. Turn On “verify-new
-  # Ensure that the Proxmox Backup Proxy service is running
-  # Restrictive permissions on PBS configuration files
-  # Verify that PVE is listening on default port (8006)
-  # Check for scheduled verification tasks
-  # Check for ZFS pool status
-  # ZFS: Check that the pools are ONLINE
-  # Kernel: Disable IP Forwarding
-  # ZFS: Alert if the datastore is full (>90%)
-  # Ensure API Tokens are used for external integrations (PVE-to-PBS)
-  # Review API Tokens with Administrator privileges
-  # Ensure no legacy/insecure remote shells are installed
-  # ZFS: Check for checksum errors in pools
-  # Ensure Fail2Ban is active for API protection
-  # Ensure security updates repository is present
-  # Ensure security updates via pve-no-subscription or enterprise repo
-  # Ensure PBS storage uses SSL Fingerprints
-  # Ensure PBS storage has encryption keys defined
-  # Ensure PVE Proxy uses secure TLS protocols
-  # Ensure Proxmox Firewall is enabled at Datacenter level
-  # Ensure Fail2Ban is installed and protecting PVE Proxy
-  # Restrict ptrace scope
-  # Check if IPv6 is disabled if not required
-  # Ensure DCCP kernel module is disabled
-  # Ensure SCTP kernel module is disabled
-  # Ensure Floppy driver is disabled
-  # Ensure personalized accounts are defined in PVE
-  # Ensure Two-Factor Authentication (2FA) is enabled
-  # Ensure PVE Web UI session timeout is configured
-  # Ensure a trusted SSL certificate is used for the GUI
-  # Ensure Fail2Ban is installed and active
-  # Ensure Fail2Ban has a jail configured for PVE Proxy
-  # Ensure Fail2Ban filter for Proxmox is defined
+  # Add check list
   
   # Use range 100000–299999 for custom checks.
   - id: 100900
@@ -166,66 +128,90 @@ checks:
       - 'c:dpkg -s systemd-boot-efi -> r:Status: install ok'
 
   - id: 100910
-    title: 'Verify your system is booting using UEFI, Secure Boot, and systemd-boot'
-    description: ""
-    condition: any
+    title: "Verify your system is booting using UEFI"
+    description: "Legacy BIOS is prone to bootkits. UEFI boot mode is required for modern security features like Secure Boot."
+    rationale: "Systems booting via UEFI have a dedicated EFI System Partition (ESP) and expose runtime variables under /sys/firmware/efi/."
+    remediation: "Reinstall Proxmox VE in UEFI mode via your motherboard's boot menu settings."
+    compliance:
+      - cis: ["1.1.1"]
+    condition: all
     rules:
-      - 'c:bootctl status -> r:systemd-boot|enable'
+      - "d:/sys/firmware/efi"
 
   - id: 100911
+    title: "Verify systemd-boot is utilized as the bootloader"
+    description: "Proxmox VE uses systemd-boot by default for UEFI installations instead of GRUB."
+    rationale: "Ensuring systemd-boot configuration files are present confirms that the system is relying on the intended, streamlined modern bootloader."
+    remediation: "If the system was forced to use GRUB, migrate the bootloader to systemd-boot using the 'proxmox-boot-tool init' command."
+    compliance:
+      - internal: ["bootloader-check"]
+    condition: any
+    rules:
+      - "d:/etc/kernel/sd-templates"
+      - "f:/etc/kernel/cmdline"
+
+  - id: 100912
     title: "Ensure Shim/Secure Boot is enabled"
-    description: "Verifies if the system is booting securely utilizing the Shim bootloader."
+    description: "Verify if the system is booting securely utilizing the Shim bootloader."
     rationale: "Malicious bootloaders can compromise the system before the operating system even loads. Ensuring Shim and Secure Boot are functioning prevents unauthorized kernels from executing."
     remediation: "Install the shim-signed package and enable Secure Boot in your system's UEFI/BIOS settings."
     condition: 'all'
     rules:
       - 'c:mokutil --sb-state -> r:SecureBoot启用|SecureBoot enabled'
 
+  - id: 100913
+    title: "Verify /boot/efi is mounted with secure mask permissions"
+    description: "The EFI System Partition (vfat) does not support standard Linux permissions. It must be mounted with strict umask, fmask, and dmask options to prevent unauthorized local users from reading or altering boot binaries."
+    rationale: "If /boot/efi is mounted with default permissions, sensitive boot configuration and binaries could be read or modified by non-root users, compromising boot integrity."
+    remediation: "Edit /etc/fstab and locate the /boot/efi entry. Update the options section to include 'defaults,umask=0077,fmask=0077,dmask=0077' and ensure the pass number at the end is not '1'."
+    compliance:
+      - cis: ["1.1.1.1"]
+    condition: all
+    rules:
+      # Negative check: Ensure it DOES NOT match the unsecure/wrongly configured pattern
+      - "not c:grep -E '^[^#].*/boot/efi' /etc/fstab -> r:defaults\\s+0\\s+1"
+      # Positive check: Ensure it explicitly contains secure masking options
+      - "c:grep -E '^[^#].*/boot/efi' /etc/fstab -> r:umask=0077|fmask=0077"
+
+  - id: 100914
+    title: "Verify proxmox-boot-tool status is configured for UEFI"
+    description: "Proxmox VE utilizes 'proxmox-boot-tool' to manage the systemd-boot configuration on UEFI systems. This check ensures the tool successfully identifies UEFI boot mode and active kernels."
+    rationale: "If proxmox-boot-tool reports an error, legacy mode, or missing configured versions, the system's ESP partitions might desynchronize, leading to unbootable kernel updates."
+    remediation: "Run 'proxmox-boot-tool status' manually to diagnose the error. You may need to re-sync the ESP partitions using 'proxmox-boot-tool refresh'."
+    compliance:
+      - internal: ["proxmox-boot-tool"]
+    condition: all
+    rules:
+      # Check 1: Confirms the tool states the system booted with UEFI
+      - "c:proxmox-boot-tool status -> r:System currently booted with uefi"
+      # Check 2: Confirms at least one UUID is configured with UEFI and active versions
+      - "c:proxmox-boot-tool status -> r:[A-FA-z0-9]{4}-[A-FA-z0-9]{4} is configured with:\\s+uefi"
+
     # Network security
-  - id: 100912
+  - id: 100915
     title: "Verify that PVE is listening on default port (8006)"
     description: ""
     condition: any
     rules:
       - 'c:ss -tlnp -> r::8006'
 
-
-
-  
-  # ZFS status 
-  # - id: 100912 
-  #   title: "ZFS: Check that the pools are ONLINE" 
-  #   description: ""
-  #   condition: all 
-  #   rules: 
-  #     - 'c:zpool status -> r:state: ONLINE' 
-  #     - 'c:zpool status -> !r:DEGRADED|FAULTED|OFFLINE' 
-
   # Kernel Security 
-  - id: 100913 
+  - id: 100916 
     title: "Kernel: Disable IP Forwarding" 
     description: ""
     condition: any 
     rules: 
     - 'c:sysctl net.ipv4.ip_forward -> r:0' 
 
-  # Space Monitoring in Datastores 
-  # - id: 100914 
-  #   title: "ZFS: Alert if the datastore is full (>90%)" 
-  #   description: ""
-  #   condition: none 
-  #   rules: 
-  #     - 'c:zfs list -> r:([9][0-9]%)'
-
   # API Token Usage
-  - id: 100915
+  - id: 100917
     title: "Ensure API Tokens are used for external integrations (PVE-to-PBS)"
     description: "Verify that at least one API token is defined in user.cfg to avoid using plain user passwords for integrations."
     condition: all
     rules:
       - "f:/etc/pve/user.cfg -> r:token:"
 
-  - id: 100916
+  - id: 100918
     title: "Review API Tokens with Administrator privileges"
     description: "Check if any API token has been granted the Administrator role, which is a security risk."
     condition: none
@@ -233,7 +219,7 @@ checks:
       - "f:/etc/pve/user.cfg -> r:token:.+:Administrator:"
 
   # Network Service Hardening
-  - id: 100917
+  - id: 100919
     title: "Ensure no legacy/insecure remote shells are installed"
     description: ""
     condition: none
@@ -243,24 +229,15 @@ checks:
       - 'c:dpkg -s nis -> r:Status: install ok'
 
   # ZFS Dataset Health (Specific to PBS Datastores)
-  - id: 100918
+  - id: 100920
     title: "ZFS: Check for checksum errors in pools"
     description: ""
     condition: none
     rules:
       - 'c:zpool status -> r:READ|WRITE|CKSUM\s+[1-9]'
 
-  # Fail2Ban Presence
-  # Since PBS is often targeted by brute force on port 8007
-  - id: 100919
-    title: "Ensure Fail2Ban is active for API protection"
-    description: ""
-    condition: any
-    rules:
-      - 'c:systemctl is-active fail2ban -> r:active'
-
   # APT Update Policy
-  - id: 100920
+  - id: 100922
     title: "Ensure security updates repository is present"
     description: ""
     condition: any
@@ -269,7 +246,7 @@ checks:
       - 'f:/etc/apt/sources.list.d/debian.sources -> r:deb-security'
 
   # No-Subscription repo setup
-  - id: 100921
+  - id: 100923
     title: "Ensure security updates via pve-no-subscription or enterprise repo"
     description: ""
     condition: any
@@ -278,7 +255,7 @@ checks:
       - "f:/etc/apt/sources.list.d/pve-enterprise.list -> r:^deb"
 
   # Fingerprint en storages PBS
-  - id: 100922
+  - id: 100924
     title: "Ensure PBS storage uses SSL Fingerprints"
     description: ""
     condition: all
@@ -286,71 +263,56 @@ checks:
       - "f:/etc/pve/storage.cfg -> r:fingerprint"
 
   # Encrypted backups 
-  - id: 100923
+  - id: 100925
     title: "Ensure PBS storage has encryption keys defined"
     description: ""
     condition: all
     rules:
       - "f:/etc/pve/storage.cfg -> r:encryption-key"
 
-  # - id: 100924
-  #   title: "Ensure PVE Proxy uses secure TLS protocols"
-  #   description: "Verify that only TLS 1.2 or 1.3 are allowed for the web interface."
-  #   condition: all
-  #   rules:
-  #     - "f:/etc/default/pveproxy -> r:CIPHERS=\"HIGH:!aNULL:!MD5\""
-
-  - id: 100925
+  - id: 100926
     title: "Ensure Proxmox Firewall is enabled at Datacenter level"
     description: ""
     condition: all
     rules:
       - "f:/etc/pve/firewall/cluster.fw -> r:enable: 1"
 
-  - id: 100926
-    title: "Ensure Fail2Ban is installed and protecting PVE Proxy"
-    description: ""
-    condition: all
-    rules:
-      - "c:systemctl is-active fail2ban -> active"
-      - "f:/etc/fail2ban/jail.local -> r:\\[proxmox\\]"
-
-  - id: 100927
+  - id: 100928
     title: "Restrict ptrace scope"
     description: ""
     condition: all
     rules:
       - "c:sysctl kernel.yama.ptrace_scope -> r:1"
 
-  - id: 100928
+  - id: 100929
     title: "Check if IPv6 is disabled if not required"
     description: ""
     condition: all
     rules:
       - "c:sysctl net.ipv6.conf.all.disable_ipv6 -> r:1"
 
-  - id: 100929
+  - id: 100930
     title: "Ensure DCCP kernel module is disabled"
     description: ""
     condition: all
     rules:
       - "c:modprobe -n -v dccp -> r:install /bin/true"
 
-  - id: 100930
+  - id: 100931
     title: "Ensure SCTP kernel module is disabled"
     description: ""
     condition: all
     rules:
       - "c:modprobe -n -v sctp -> r:install /bin/true"
 
-  - id: 100931
+  - id: 100932
     title: "Ensure Floppy driver is disabled"
     description: ""
     condition: all
     rules:
       - "c:modprobe -n -v floppy -> r:install /bin/true"
 
-  - id: 100932
+  - id: 100933
     title: "Ensure personalized accounts are defined in PVE"
     description: "Checks if there are other users defined in Proxmox besides the default root@pam."
     condition: all
@@ -358,47 +320,24 @@ checks:
       - "f:/etc/pve/user.cfg -> r:user:[^:]+@(pam|pve):"
       - "f:/etc/pve/user.cfg -> n:user:root@pam:"
 
-  - id: 100933
+  - id: 100934
     title: "Ensure Two-Factor Authentication (2FA) is enabled"
     description: "Checks if there is any TFA configuration (TOTP, WebAuthn, Yubico) in the PVE cluster."
     condition: all
     rules:
-      - "f:/etc/pve/tfa.cfg -> r:type:"
-
-  - id: 100934
-    title: "Ensure PVE Web UI session timeout is configured"
-    description: ""
-    condition: all
-    rules:
-      - "f:/usr/share/perl5/PVE/AccessControl.pm -> r:my \\$ticket_lifetime = \\d+"
+      - 'f:/etc/pve/tfa.cfg -> r:type:'
 
   - id: 100935
-    title: "Ensure a trusted SSL certificate is used for the GUI"
-    description: "Checks if the PVE proxy is using a custom certificate instead of the default self-signed one."
+    title: 'Ensure PVE Web UI session timeout is configured'
+    description: ''
     condition: all
     rules:
-      - "f:/etc/pve/local/pveproxy-ssl.pem"
-      - "c:openssl x509 -in /etc/pve/local/pveproxy-ssl.pem -noout -issuer -> !r:Proxmox Virtual Environment"
+      - 'f:/usr/share/perl5/PVE/AccessControl.pm -> r:my \\$ticket_lifetime = \\d+'
 
   - id: 100936
-    title: "Ensure Fail2Ban is installed and active"
-    description: ""
+    title: 'Ensure a trusted SSL certificate is used for the GUI'
+    description: 'Checks if the PVE proxy is using a custom certificate instead of the default self-signed one.'
     condition: all
     rules:
-      - "c:systemctl is-active fail2ban -> active"
-
-  - id: 100937
-    title: "Ensure Fail2Ban has a jail configured for PVE Proxy"
-    description: "Verifies that a jail exists to monitor authentication failures in pveproxy."
-    condition: any
-    rules:
-      - "f:/etc/fail2ban/jail.local -> r:\\[proxmox\\]"
-      - "f:/etc/fail2ban/jail.conf -> r:\\[proxmox\\]"
-      - "f:/etc/fail2ban/jail.d/proxmox.conf"
-
-  - id: 100938
-    title: "Ensure Fail2Ban filter for Proxmox is defined"
-    description: "Checks for the existence of the regex filter to catch failed PVE logins."
-    condition: all
-    rules:
-      - "f:/etc/fail2ban/filter.d/proxmox.conf -> r:failregex = auth failure;.*remote_ip=<HOST>"
+      - 'f:/etc/pve/local/pveproxy-ssl.pem'
+      - 'c:openssl x509 -in /etc/pve/local/pveproxy-ssl.pem -noout -issuer -> !r:Proxmox Virtual Environment'
