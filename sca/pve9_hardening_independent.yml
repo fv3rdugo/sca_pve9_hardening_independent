@@ -8,8 +8,7 @@
 
 policy:
   id: "pve9_hardening_independent"
-  title: "Security Configuration Assessment for pve9 Server"
-  file: "pve9_hardening_independent"
+  file: "pve9_hardening_independent.yml"
   name: "Proxmox VE Server 9.x hardening server"
   description: "This document provides prescriptive guidance for establishing a secure configuration posture for Proxmox VE Server 9.x"
   references:
