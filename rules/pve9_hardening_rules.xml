@@ -1,0 +1,252 @@
+<group name="pve9,hardening,sca,">
+
+  <rule id="200900" level="0">
+    <if_sid>1801</if_sid>
+    <field name="sca.policy.id">pve9_hardening_independent</field>
+    <description>SCA PVE9 Hardening Independent policy events.</description>
+  </rule>
+
+  <rule id="200901" level="5">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100900</field>
+    <description>PVE9 Hardening: Debian 'non-free-firmware' repositories are not fully enabled.</description>
+  </rule>
+
+  <rule id="200902" level="7">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100901</field>
+    <description>PVE9 Hardening: CPU microcode (Intel/AMD) for security mitigations is missing.</description>
+    <mitre>
+      <id>T1495</id>
+    </mitre>
+  </rule>
+
+  <rule id="200903" level="8">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100902</field>
+    <description>PVE9 Hardening: Required packages for UEFI Secure Boot are not installed.</description>
+  </rule>
+
+  <rule id="200904" level="9">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100903</field>
+    <description>PVE9 Hardening: Kernel Lockdown (Integrity Mode) is disabled.</description>
+    <mitre>
+      <id>T1495</id>
+    </mitre>
+  </rule>
+
+  <rule id="200905" level="4">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100904</field>
+    <description>PVE9 Hardening: Proxmox VE subscription is not active or valid.</description>
+  </rule>
+
+  <rule id="200906" level="9">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100905</field>
+    <description>PVE9 Hardening: Global Two-Factor Authentication (2FA) config file is empty or missing.</description>
+    <mitre>
+      <id>T1556</id>
+    </mitre>
+  </rule>
+
+  <rule id="200907" level="10">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100907</field>
+    <description>PVE9 Hardening: Critical Proxmox VE service 'pvestatd' is not active.</description>
+  </rule>
+
+  <rule id="200908" level="6">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100908</field>
+    <description>PVE9 Hardening: 'systemd-boot' manager or its cmdline parameters are missing.</description>
+  </rule>
+
+  <rule id="200909" level="6">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100909</field>
+    <description>PVE9 Hardening: Required boot packages for UEFI, Shim, or Systemd-boot are missing.</description>
+  </rule>
+
+  <rule id="200910" level="8">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100910</field>
+    <description>PVE9 Hardening: Server did not boot using UEFI mode (Risk of Bootkits/Legacy BIOS).</description>
+    <mitre>
+      <id>T1542.001</id>
+    </mitre>
+  </rule>
+
+  <rule id="200911" level="6">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100911</field>
+    <description>PVE9 Hardening: 'systemd-boot' is not being utilized as the primary bootloader.</description>
+  </rule>
+
+  <rule id="200912" level="9">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100912</field>
+    <description>PVE9 Hardening: UEFI Secure Boot (Shim) is disabled in BIOS/Firmware.</description>
+    <mitre>
+      <id>T1542.001</id>
+    </mitre>
+  </rule>
+
+  <rule id="200913" level="7">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100913</field>
+    <description>PVE9 Hardening: /boot/efi partition is not mounted with secure mask permissions (umask=0077).</description>
+  </rule>
+
+  <rule id="200914" level="7">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100914</field>
+    <description>PVE9 Hardening: 'proxmox-boot-tool' status reports errors or un-synchronized ESP partitions.</description>
+  </rule>
+
+  <rule id="200915" level="5">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100915</field>
+    <description>PVE9 Hardening: Proxmox VE API/Web UI is not listening on the default port (8006).</description>
+  </rule>
+
+  <rule id="200916" level="8">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100916</field>
+    <description>PVE9 Hardening: Kernel IPv4 Forwarding is enabled (Node behaves as an unintended router).</description>
+  </rule>
+
+  <rule id="200917" level="6">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100917</field>
+    <description>PVE9 Hardening: No API Tokens are defined in user.cfg for external integrations (e.g., PVE-to-PBS).</description>
+  </rule>
+
+  <rule id="200918" level="9">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100918</field>
+    <description>PVE9 Hardening ALERT: An API Token has been granted full Administrator privileges.</description>
+    <mitre>
+      <id>T1078.004</id>
+    </mitre>
+  </rule>
+
+  <rule id="200919" level="8">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100919</field>
+    <description>PVE9 Hardening: Legacy/Insecure remote shell services (Telnet/RSH/NIS) are installed.</description>
+    <mitre>
+      <id>T1021.002</id>
+    </mitre>
+  </rule>
+
+  <rule id="200920" level="9">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100920</field>
+    <description>PVE9 Hardening CRITICAL: Read, Write, or Checksum errors detected in ZFS pools.</description>
+  </rule>
+
+  <rule id="200922" level="7">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100922</field>
+    <description>PVE9 Hardening: Debian security updates repository (deb-security) is missing.</description>
+  </rule>
+
+  <rule id="200923" level="6">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100923</field>
+    <description>PVE9 Hardening: Proxmox update repositories (pve-no-subscription or enterprise) are missing.</description>
+  </rule>
+
+  <rule id="200924" level="7">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100924</field>
+    <description>PVE9 Hardening: Proxmox Backup Server (PBS) storages do not use SSL Fingerprints.</description>
+    <mitre>
+      <id>T1573</id>
+    </mitre>
+  </rule>
+
+  <rule id="200925" level="8">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100925</field>
+    <description>PVE9 Hardening: Proxmox Backup Server (PBS) storages lack encryption keys.</description>
+    <mitre>
+      <id>T1486</id>
+    </mitre>
+  </rule>
+
+  <rule id="200926" level="9">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100926</field>
+    <description>PVE9 Hardening: Proxmox Firewall is disabled at Datacenter (Cluster) level.</description>
+    <mitre>
+      <id>T1562.004</id>
+    </mitre>
+  </rule>
+
+  <rule id="200928" level="7">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100928</field>
+    <description>PVE9 Hardening: Ptrace scope (kernel.yama.ptrace_scope) is not restricted.</description>
+    <mitre>
+      <id>T1055</id>
+    </mitre>
+  </rule>
+
+  <rule id="200929" level="5">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100929</field>
+    <description>PVE9 Hardening: IPv6 is not explicitly disabled on the system kernel.</description>
+  </rule>
+
+  <rule id="200930" level="6">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100930</field>
+    <description>PVE9 Hardening: DCCP network kernel module is not disabled.</description>
+  </rule>
+
+  <rule id="200931" level="6">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100931</field>
+    <description>PVE9 Hardening: SCTP network kernel module is not disabled.</description>
+  </rule>
+
+  <rule id="200932" level="5">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100932</field>
+    <description>PVE9 Hardening: Obsolete floppy drive kernel module is not disabled.</description>
+  </rule>
+
+  <rule id="200933" level="7">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100933</field>
+    <description>PVE9 Hardening: No personalized/nominal user accounts are defined (only root@pam exists).</description>
+    <mitre>
+      <id>T1078</id>
+    </mitre>
+  </rule>
+
+  <rule id="200934" level="9">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100934</field>
+    <description>PVE9 Hardening CRITICAL: Multi-Factor Authentication (2FA/TFA) is completely missing in the cluster configuration.</description>
+    <mitre>
+      <id>T1556</id>
+    </mitre>
+  </rule>
+
+  <rule id="200935" level="6">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100935</field>
+    <description>PVE9 Hardening: PVE Web UI session timeout (ticket_lifetime) is not securely parameterized.</description>
+  </rule>
+
+  <rule id="200936" level="7">
+    <if_sid>200900</if_sid>
+    <field name="sca.check.id">100936</field>
+    <description>PVE9 Hardening: PVE Proxy Web GUI is still utilizing the default self-signed SSL certificate.</description>
+  </rule>
+
+</group>
