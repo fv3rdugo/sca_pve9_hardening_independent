@@ -1,6 +1,6 @@
 <group name="pve9,hardening,sca,">
 
-  <rule id="200900" level="0">
+  <rule id="200900" level="1">
     <if_sid>1801</if_sid>
     <field name="sca.policy.id">pve9_hardening_independent</field>
     <description>SCA PVE9 Hardening Independent policy events.</description>
